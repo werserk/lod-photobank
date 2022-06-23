@@ -1,7 +1,11 @@
 import streamlit as st
-from utils import read_files
+
+from storage.loaders import LocalStorageLoader
 from production import get_setup
 import cv2
+
+import hydra
+from omegaconf import DictConfig
 
 
 @st.cache
@@ -9,7 +13,8 @@ def cached_get_setup():
     return get_setup()
 
 
-def main():
+@hydra.main(version_base="1.1", config_path="conf", config_name="default")
+def main(config: DictConfig):
     models, transforms = cached_get_setup()
 
     page_bg_img = '''
@@ -28,14 +33,15 @@ def main():
 
     list_of_files = st.expander('Найденные файлы')
     for i in range(3):
-        img = cv2.cvtColor(cv2.imread('image.jpg'), cv2.COLOR_BGR2RGB)
+        img = cv2.cvtColor(cv2.imread(f"{config.root_path}/image.jpg"), cv2.COLOR_BGR2RGB)
         list_of_files.image(img)
 
     download_expender = st.expander('Загрузка файлов')
     filenames = download_expender.file_uploader('Выберите или ператащите сюда снимки', type=['png', 'jpeg', 'jpg'],
                                                 accept_multiple_files=True)
+    local_loader = LocalStorageLoader(config)
     if download_expender.button('Загрузить') and filenames:
-        paths, folder_name = read_files(filenames)
+        paths = local_loader.read_files(filenames)
         if not paths:
             st.error('Неправильный формат или название файла')
 
