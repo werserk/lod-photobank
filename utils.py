@@ -11,8 +11,7 @@ def read_files(files):
     # creating folder for user
     folder_name = generate_folder_name()
     path = 'images/' + folder_name
-    if not os.path.exists(path):
-        os.mkdir(path)
+    os.makedirs(path, exist_ok=True)
 
     paths = []
     for file in files:
@@ -22,8 +21,3 @@ def read_files(files):
 
             paths[-1].append(path + file.name)
     return paths, folder_name
-
-
-def create_folder(path):
-    if not os.path.exists(path):
-        os.mkdir(path)
