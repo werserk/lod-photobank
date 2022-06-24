@@ -1,0 +1,26 @@
+# docker-compose.yaml
+version: '3.0'
+
+services:
+  lod-photobank:
+    build: .
+    ports:
+      - "8000:5000"
+ minio:
+   image: minio/minio:latest
+   command: server --console-address ":9001" /data/
+   ports:
+     - "9000:9000"
+     - "9001:9001"
+   environment:
+     MINIO_ROOT_USER: ozontech
+     MINIO_ROOT_PASSWORD: minio123
+   volumes:
+     - minio-storage:/data
+   healthcheck:
+     test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+     interval: 30s
+     timeout: 20s
+     retries: 3
+volumes:
+ minio-storage:
