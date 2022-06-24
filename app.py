@@ -1,6 +1,6 @@
 import streamlit as st
 
-from storage.loaders import LocalStorageLoader
+from app.extract.sources import LocalSource
 from production import get_setup
 import cv2
 
@@ -39,9 +39,9 @@ def main(config: DictConfig):
     download_expender = st.expander('Загрузка файлов')
     filenames = download_expender.file_uploader('Выберите или ператащите сюда снимки', type=['png', 'jpeg', 'jpg'],
                                                 accept_multiple_files=True)
-    local_loader = LocalStorageLoader(config)
+    local_loader = LocalSource(config)
     if download_expender.button('Загрузить') and filenames:
-        paths = local_loader.read_files(filenames)
+        paths = local_loader.extract_files(filenames)
         if not paths:
             st.error('Неправильный формат или название файла')
 
