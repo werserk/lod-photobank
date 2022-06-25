@@ -38,7 +38,7 @@ def main(config: DictConfig):
         paths = source.extract_zip(dataset_path)
         embeddings = production.get_embeddings(model, processor, paths)
         production.save_embeddings(embeddings)
-        storage.save_files_to_bucket(paths)
+        storage.move_files_to_bucket(paths)
 
     page_bg_img = '''
     <style>
@@ -68,7 +68,7 @@ def main(config: DictConfig):
         else:
             embeddings = production.get_embeddings(model, processor, paths)
             production.save_embeddings(embeddings)
-            storage.save_files_to_bucket(paths)
+            storage.move_files_to_bucket(paths)
 
     # # ОСНОВНАЯ ЛЕНТА
     request = st.text_input('Поиск по описанию', value="")
@@ -78,6 +78,8 @@ def main(config: DictConfig):
         best_paths = production.search_max_similary(data, embeddings)
         for path in best_paths:
             path = path.replace('\\', '/')
+            if not os.path.isfile(path):
+                storage.load_file_from_bucket(path)
             image = cv2.cvtColor(cv2.imread(path), cv2.COLOR_BGR2RGB)
             st.image(image)
 

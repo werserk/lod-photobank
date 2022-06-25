@@ -1,3 +1,4 @@
+import os
 from abc import ABC, abstractmethod
 
 from minio import Minio
@@ -15,7 +16,7 @@ class Storage(ABC):
     It's abstraction of load stage of pipeline
     """
     @abstractmethod
-    def save_file_to_bucket(self, filepath, filename=None):
+    def move_file_to_bucket(self, filepath, filename=None):
         """
         Saving file from path to cache to object some storage
         :param filepath: path to file
@@ -33,9 +34,9 @@ class Storage(ABC):
         pass
 
     @abstractmethod
-    def save_files_to_bucket(self, paths):
+    def move_files_to_bucket(self, paths):
         """
-        Save several files to bucket. This method is composition over save_file_to_bucket
+        Save several files to bucket. This method is composition over move_file_to_bucket
         :param paths: paths to files to save
         """
         pass
@@ -59,12 +60,13 @@ class S3Storage(Storage):
             log.info("Creating bucket.....")
             self.client.make_bucket(self.bucket_name)
 
-    def save_file_to_bucket(self, filepath, filename=None):
+    def move_file_to_bucket(self, filepath, filename=None):
         if filename is None:
             filename = filepath.split('/')[-1]
         self.client.fput_object(
             self.bucket_name, filename, filepath,
         )
+        os.remove(filepath)
 
     def load_file_from_bucket(self, filename):
         path = f"{self.config.cache_path}/{filename}"
@@ -72,7 +74,8 @@ class S3Storage(Storage):
             self.bucket_name, filename, path)
         return path
 
-    def save_files_to_bucket(self, paths):
+    def move_files_to_bucket(self, paths):
         for inner_paths in paths:
             for path in inner_paths:
-                self.save_file_to_bucket(path, path)
+                self.move_file_to_bucket(path, path)
+
