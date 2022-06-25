@@ -5,7 +5,6 @@ import streamlit as st
 from hydra.core.global_hydra import GlobalHydra
 
 import production
-import utils
 import cv2
 
 from app.extract.sources import LocalSource
