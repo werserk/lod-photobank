@@ -1,25 +1,18 @@
-import logging
-
 import streamlit as st
 
-from app.extract.sources import LocalSource
-from app.load.storages import S3Storage
-# from production import get_setup
-import cv2
+import production
+import utils
 
-import hydra
-from omegaconf import DictConfig
-
-log = logging.getLogger(__name__)
-
-# @st.cache
-# def cached_get_setup():
-#     return get_setup()
+tags = 'Время суток	Время года	Местность	Авиа	Автомобили	БПЛА	Водолаз	Кинолог	Кони	Объятия	Шерп'.split(
+    '\t')
 
 
-@hydra.main(version_base="1.1", config_path="conf", config_name="default")
-def main(config: DictConfig):
-    # models, processor = cached_get_setup()
+def cached_get_setup():
+    return production.get_setup()
+
+
+def main():
+    model, processor = cached_get_setup()
 
     page_bg_img = '''
     <style>
@@ -31,28 +24,32 @@ def main(config: DictConfig):
     '''
 
     st.markdown(page_bg_img, unsafe_allow_html=True)
-
     st.title('Фотобанк')
-    st.text_input('Запрос по архиву', value="")
 
-    list_of_files = st.expander('Найденные файлы')
-    for i in range(3):
-        img = cv2.cvtColor(cv2.imread(f"{config.root_path}/image.jpg"), cv2.COLOR_BGR2RGB)
-        list_of_files.image(img)
+    ### SIDEBAR
+    for tag in tags:
+        st.sidebar.checkbox(tag)
 
-    download_expander = st.expander('Загрузка файлов')
-    filenames = download_expander.file_uploader('Выберите или ператащите сюда снимки', type=['png', 'jpeg', 'jpg'],
+    ### БЛОК ЗАГРУЗКИ ФАЙЛОВ
+    download_expender = st.expander('Загрузка файлов')
+    filenames = download_expender.file_uploader('Выберите или ператащите сюда снимки', type=['png', 'jpeg', 'jpg'],
                                                 accept_multiple_files=True)
-    local_source = LocalSource(config)
-    storage = S3Storage(config)
-    if download_expander.button('Загрузить') and filenames:
-        paths = local_source.extract_files(filenames)
+    if download_expender.button('Загрузить') and filenames:
+        paths = utils.read_files(filenames)
         if not paths:
             st.error('Неправильный формат или название файла')
-        for inner_paths in paths:
-            for path in inner_paths:
-                log.info(paths)
-                storage.save_file_to_bucket(path)
+        else:
+            embeddings = production.get_embeddings(model, processor, paths)
+            production.save_embeddings(embeddings)
+
+    ### ОСНОВНАЯ ЛЕНТА
+    request = st.text_input('Поиск по описанию', value="")
+    st.button('Искать')
+    if st.button:
+        data = production.load_db_embeddings()
+        embeddings = production.get_embeddings_from_text(processor, request)
+        max_k = production.search_max_similary(data, embeddings)
+        print(max_k)
 
 
 if __name__ == '__main__':
