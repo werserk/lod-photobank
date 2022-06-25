@@ -15,7 +15,7 @@ def cached_get_setup():
 
 @hydra.main(version_base="1.1", config_path="conf", config_name="default")
 def main(config: DictConfig):
-    models, transforms = cached_get_setup()
+    models, processor = cached_get_setup()
 
     page_bg_img = '''
     <style>
