@@ -17,6 +17,8 @@ class Source(ABC):
         self.config = config
         self.cache_folder = f"{config.root_path}/{config.cache_folder}"
         os.makedirs(self.cache_folder, exist_ok=True)
+        os.makedirs(self.cache_folder+"/images", exist_ok=True)
+        os.makedirs(self.cache_folder + "/embeddings", exist_ok=True)
 
     @abstractmethod
     def extract_files(self, files):

@@ -1,3 +1,4 @@
+import numpy as np
 import streamlit as st
 import production
 import utils
@@ -36,9 +37,24 @@ def main():
     st.markdown(page_bg_img, unsafe_allow_html=True)
     st.title('Фотобанк')
 
+    include_tags = []
     ### SIDEBAR
     for tag in tags:
-        st.sidebar.checkbox(tag)
+        if tag == "Время суток":
+            time_of_day = {0: "Не выбрано", 1: "День", 2: "Ночь", 3: "Рассвет/закат"}
+            include_tag = st.sidebar.selectbox('Время суток', time_of_day, format_func=lambda x: time_of_day[x])
+            include_tags.append(include_tag)
+        elif tag == "Время года":
+            season = {0: "Не выбрано", 1: "Зима", 2: "Весна", 3: "Лето", 4: "Осень"}
+            include_tag = st.sidebar.selectbox('Время года', season, format_func=lambda x: season[x])
+            include_tags.append(include_tag)
+        elif tag == "Местность":
+            place = {0: "Не выбрано", 1: "Лес", 2: "Город"}
+            include_tag = st.sidebar.selectbox('Местность', place, format_func=lambda x: place[x])
+            include_tags.append(include_tag)
+        else:
+            include_tag = st.sidebar.checkbox(tag)
+            include_tags.append(int(include_tag))
 
     ### БЛОК ЗАГРУЗКИ ФАЙЛОВ
     download_expender = st.expander('Загрузка файлов')
@@ -55,12 +71,16 @@ def main():
     ### ОСНОВНАЯ ЛЕНТА
     request = st.text_input('Поиск по описанию', value="")
     if st.button('Искать') and request:
-        data = production.load_db_embeddings()
+        data = production.load_db_embeddings(include_tags)
         embeddings = production.get_embeddings_from_text(model, processor, request)
         best_paths = production.search_max_similary(data, embeddings)
         for path in best_paths:
             path = path.replace('\\', '/')
-            image = cv2.cvtColor(cv2.imread(path), cv2.COLOR_BGR2RGB)
+            f = open(path, "rb")
+            chunk = f.read()
+            chunk_arr = np.frombuffer(chunk, dtype=np.uint8)
+            img = cv2.imdecode(chunk_arr, cv2.IMREAD_COLOR)
+            image = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             st.image(image)
 
 
