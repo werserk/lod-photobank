@@ -7,10 +7,11 @@ import pandas as pd
 import string
 import random
 import numpy as np
+from utils import generate_filename
 
 DEVICE = 'cpu'
 EMBEDDING_LENGTH = 768  # длина эмбеддинга
-K = 5
+K = 2
 
 
 def get_setup():
@@ -48,11 +49,6 @@ def get_embeddings(model, processor, data):
     return results
 
 
-def generate_filename():
-    filename = ''.join(random.choice(string.ascii_letters) for _ in range(8))
-    return filename
-
-
 def save_embeddings(embeddings):
     embeddings = [(i, j.detach().cpu().numpy()) for i, j in embeddings]
     df = pd.DataFrame([(i, *j) for i, j in embeddings],
@@ -67,19 +63,24 @@ def load_db_embeddings():
     df_res = pd.read_feather(os.path.join(folder, feathers[0]))
     for feather in feathers[1:]:
         df = pd.read_feather(os.path.join(folder, feather))
-        df_res.append(df)
+        df_res = df_res.append(df)
     return df_res
 
 
-def search_max_similary(data, embeddings):
+def search_max_similary(df, embedding):
+    data = df.iloc[:, 1:].to_numpy()
+    data = np.ascontiguousarray(data)
     index = faiss.IndexFlatL2(EMBEDDING_LENGTH)
-    index.add(embeddings)
-    data = data.iloc[:, 1:].to_numpy()
-    print(data.shape)
-    D, I = index.search(data, K)
-    return data.iloc[I, 0]
+    embedding = embedding.detach().cpu().numpy()
+    embedding = np.ascontiguousarray(embedding)
+    index.add(data)
+    D, I = index.search(embedding, K)
+    I = list(I[0])
+    return df.iloc[I, 0]
 
 
-def get_embeddings_from_text(processor, request):
-    embeddings = processor(text=request, return_tensors='pt', padding=True)["input_ids"]
+def get_embeddings_from_text(model, processor, request):
+    tokenized = processor(text=request, return_tensors='pt', padding=True)["input_ids"]
+    with torch.no_grad():
+        embeddings = model.encode_text(tokenized)
     return embeddings

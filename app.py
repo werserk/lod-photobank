@@ -5,6 +5,8 @@ import streamlit as st
 from hydra.core.global_hydra import GlobalHydra
 
 import production
+import utils
+import cv2
 
 from app.extract.sources import LocalSource
 from app.load.storages import S3Storage
@@ -71,12 +73,14 @@ def main(config: DictConfig):
 
     # # ОСНОВНАЯ ЛЕНТА
     request = st.text_input('Поиск по описанию', value="")
-    st.button('Искать')
-    if st.button:
+    if st.button('Искать') and request:
         data = production.load_db_embeddings()
-        embeddings = production.get_embeddings_from_text(processor, request)
-        max_k = production.search_max_similary(data, embeddings)
-        print(max_k)
+        embeddings = production.get_embeddings_from_text(model, processor, request)
+        best_paths = production.search_max_similary(data, embeddings)
+        for path in best_paths:
+            path = path.replace('\\', '/')
+            image = cv2.cvtColor(cv2.imread(path), cv2.COLOR_BGR2RGB)
+            st.image(image)
 
 
 if __name__ == '__main__':
