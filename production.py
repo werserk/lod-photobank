@@ -60,18 +60,24 @@ def save_embeddings(classifiers, embeddings):
     for classifier in classifiers[2:]:
         preds_class = classifier.predict(embeddings)
         predictions.append(preds_class)
-    print(predictions)
+
+    preds_df = pd.DataFrame(predictions).transpose().add_prefix("tag")
+    df.join(preds_df)
     filename = generate_filename()
     df.to_feather(f"data/embeddings/{filename}.feather")
 
 
-def load_db_embeddings():
+def load_db_embeddings(include_filter):
     folder = 'data/embeddings'
     feathers = os.listdir(folder)
     df_res = pd.read_feather(os.path.join(folder, feathers[0]))
     for feather in feathers[1:]:
         df = pd.read_feather(os.path.join(folder, feather))
         df_res = df_res.append(df)
+    for index, tag in enumerate(include_filter):
+        if tag != 0:
+            df_res = df_res[df_res[f"tag{index}"] == tag]
+        df_res = df_res.drop(f"tag{index}")
     return df_res
 
 

@@ -1,10 +1,9 @@
 import os
-import string
-import random
+import uuid
 
 
 def generate_filename():
-    filename = ''.join(random.choice(string.ascii_letters) for _ in range(8))
+    filename = str(uuid.uuid4().hex)
     return filename
 
 
@@ -15,7 +14,7 @@ def generate_folder_name():
 def read_files(files):
     paths = []
     for file in files:
-        filename = os.path.join('data/images', generate_filename())
+        filename = os.path.join('data\\images', generate_filename()+".jpg")
         with open(filename, 'wb') as f:
             f.write(file.getvalue())
             paths.append(filename)
