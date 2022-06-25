@@ -1,5 +1,6 @@
+from abc import ABC, abstractmethod
+
 from minio import Minio
-from minio.error import S3Error
 import logging
 
 from omegaconf import DictConfig
@@ -7,8 +8,44 @@ from omegaconf import DictConfig
 log = logging.getLogger(__name__)
 
 
-class S3Storage:
+class Storage(ABC):
+    """
+    Storage class relate to different storage of our files
+    Like S3, LocalFolders and others
+    It's abstraction of load stage of pipeline
+    """
+    @abstractmethod
+    def save_file_to_bucket(self, filepath, filename=None):
+        """
+        Saving file from path to cache to object some storage
+        :param filepath: path to file
+        :param filename: filename, which be assigned to image/video in object storage
+        """
+        pass
+
+    @abstractmethod
+    def load_file_from_bucket(self, filename):
+        """
+        Load file from bucket to cache
+        :param filename: file id in object storage
+        :return path to saved file
+        """
+        pass
+
+    @abstractmethod
+    def save_files_to_bucket(self, paths):
+        """
+        Save several files to bucket. This method is composition over save_file_to_bucket
+        :param paths: paths to files to save
+        """
+        pass
+
+
+class S3Storage(Storage):
     def __init__(self, config: DictConfig):
+        self.config = config
+        self.bucket_name = self.config.s3.bucket_name
+
         self.client = Minio(
             config.s3.endpoint_url,
             config.s3.access_key,
@@ -16,52 +53,26 @@ class S3Storage:
             secure=False
         )
 
-        # Make 'log-photobank-prod' bucket if not exist.
-        found = self.client.bucket_exists("lod-photobank-prod")
+        found = self.client.bucket_exists(self.bucket_name)
         if not found:
-            self._init_bucket_with_data()
+            log.info(f"Bucket '{self.bucket_name}' doesn't exists...")
+            log.info("Creating bucket.....")
+            self.client.make_bucket(self.bucket_name)
 
-    def save_file_to_bucket(self, filepath):
-        filename = filepath.split('/')[-1]
+    def save_file_to_bucket(self, filepath, filename=None):
+        if filename is None:
+            filename = filepath.split('/')[-1]
         self.client.fput_object(
-            "lod-photobank-prod", filename, filepath,
+            self.bucket_name, filename, filepath,
         )
 
-    def _init_bucket_with_data(self):
-        log.info("Bucket 'lod-photobank-prod' doesn't exists...")
-        log.info("Creating bucket.....")
-        # TODO write code to load zip archive with dataset
-        self.client.make_bucket("lod-photobank-prod")
+    def load_file_from_bucket(self, filename):
+        path = f"{self.config.cache_path}/{filename}"
+        self.client.fget_object(
+            self.bucket_name, filename, path)
+        return path
 
-
-def main():
-    client = Minio(
-        "127.0.0.1:9000",
-        access_key="minioadmin",
-        secret_key="minioadmin",
-        secure=False
-    )
-
-    # Make 'asiatrip' bucket if not exist.
-    found = client.bucket_exists("lod-photobank-prod")
-    if not found:
-        client.make_bucket("lod-photobank-prod")
-    else:
-        log.info("Bucket 'lod-photobank-prod' already exists")
-
-    # Upload '/home/user/Photos/asiaphotos.zip' as object name
-    # 'asiaphotos-2015.zip' to bucket 'asiatrip'.
-    client.fput_object(
-        "asiatrip", "asiaphotos-2015.zip", "/home/user/Photos/asiaphotos.zip",
-    )
-    print(
-        "'/home/user/Photos/asiaphotos.zip' is successfully uploaded as "
-        "object 'asiaphotos-2015.zip' to bucket 'asiatrip'."
-    )
-
-
-if __name__ == "__main__":
-    try:
-        main()
-    except S3Error as exc:
-        print("error occurred.", exc)
+    def save_files_to_bucket(self, paths):
+        for inner_paths in paths:
+            for path in inner_paths:
+                self.save_file_to_bucket(path, path)

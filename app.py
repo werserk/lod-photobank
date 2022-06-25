@@ -5,7 +5,6 @@ import streamlit as st
 from hydra.core.global_hydra import GlobalHydra
 
 import production
-import utils
 
 from app.extract.sources import LocalSource
 from app.load.storages import S3Storage
@@ -25,9 +24,20 @@ def cached_get_setup():
 
 @hydra.main(version_base="1.1", config_path="conf", config_name="default")
 def main(config: DictConfig):
-    # model, processor = cached_get_setup()
+    model, processor = cached_get_setup()
     log.info(os.getcwd())
     GlobalHydra.instance().clear()
+
+    source = LocalSource(config)
+    storage = S3Storage(config)
+
+    # pre-initialization
+    dataset_path = os.environ.get('ZIP_DATASET_PATH')
+    if dataset_path:
+        paths = source.extract_zip(dataset_path)
+        embeddings = production.get_embeddings(model, processor, paths)
+        production.save_embeddings(embeddings)
+        storage.save_files_to_bucket(paths)
 
     page_bg_img = '''
     <style>
@@ -49,28 +59,24 @@ def main(config: DictConfig):
     download_expander = st.expander('Загрузка файлов')
     filenames = download_expander.file_uploader('Выберите или перетащите сюда снимки', type=['png', 'jpeg', 'jpg'],
                                                 accept_multiple_files=True)
-    source = LocalSource(config)
-    storage = S3Storage(config)
+
     if download_expander.button('Загрузить') and filenames:
         paths = source.extract_files(filenames)
         if not paths:
             st.error('Неправильный формат или название файла')
         else:
-            #embeddings = production.get_embeddings(model, processor, paths)
-            #production.save_embeddings(embeddings)
-            for inner_paths in paths:
-                for path in inner_paths:
-                    log.info(paths)
-                    storage.save_file_to_bucket(path)
+            embeddings = production.get_embeddings(model, processor, paths)
+            production.save_embeddings(embeddings)
+            storage.save_files_to_bucket(paths)
 
     # # ОСНОВНАЯ ЛЕНТА
-    # request = st.text_input('Поиск по описанию', value="")
-    # st.button('Искать')
-    # if st.button:
-    #     data = production.load_db_embeddings()
-    #     embeddings = production.get_embeddings_from_text(processor, request)
-    #     max_k = production.search_max_similary(data, embeddings)
-    #     print(max_k)
+    request = st.text_input('Поиск по описанию', value="")
+    st.button('Искать')
+    if st.button:
+        data = production.load_db_embeddings()
+        embeddings = production.get_embeddings_from_text(processor, request)
+        max_k = production.search_max_similary(data, embeddings)
+        print(max_k)
 
 
 if __name__ == '__main__':
