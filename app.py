@@ -5,7 +5,12 @@ import streamlit as st
 from hydra.core.global_hydra import GlobalHydra
 
 import production
+import utils
 import cv2
+from catboost import CatBoostClassifier
+import hashlib
+import pickle
+from _youtokentome_cython import BPE
 
 from app.extract.sources import LocalSource
 from app.load.storages import S3Storage
@@ -19,13 +24,20 @@ tags = 'Время суток	Время года	Местность	Авиа	А
     '\t')
 
 
-def cached_get_setup():
-    return production.get_setup()
+# def _hash(obj):
+#     return hashlib.sha1(obj).digest()
+
+
+# @st.cache(hash_funcs={BPE: _hash})
+def get_setup():
+    model, processor = production.get_setup()
+    catboost_classifiers = [CatBoostClassifier().load_model(f'models/{tag.replace(" ", "_")}.cbm') for tag in tags]
+    return model, processor, catboost_classifiers
 
 
 @hydra.main(version_base="1.1", config_path="conf", config_name="default")
 def main(config: DictConfig):
-    model, processor = cached_get_setup()
+    model, processor, catboost_classifiers = get_setup()
     log.info(os.getcwd())
     GlobalHydra.instance().clear()
 
@@ -69,7 +81,7 @@ def main(config: DictConfig):
             st.error('Неправильный формат или название файла')
         else:
             embeddings = production.get_embeddings(model, processor, paths)
-            production.save_embeddings(embeddings)
+            production.save_embeddings(catboost_classifiers, embeddings)
             storage.move_files_to_bucket(paths)
 
     # # ОСНОВНАЯ ЛЕНТА
