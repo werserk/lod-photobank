@@ -40,6 +40,8 @@ def main(config: DictConfig):
         production.save_embeddings(embeddings)
         storage.move_files_to_bucket(paths)
 
+    config.yadisk_token = os.environ.get("YADISK_TOKEN")
+
     page_bg_img = '''
     <style>
     .stApp {
