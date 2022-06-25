@@ -1,4 +1,4 @@
 root_path: '../../..'
-cache_folder: 'images'
+cache_folder: 'data'
 # todo env variable reading
 yadisk_token: '<your-access-token>'

@@ -1,5 +1,5 @@
 """
-Loaders for volunteers, who send random images to object storage
+Loaders for volunteers, who send random data to object storage
 """
 
 from abc import ABC, abstractmethod
