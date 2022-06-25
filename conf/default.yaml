@@ -1,4 +1,4 @@
-root_path: '../../..'
+root_path: '.'
 cache_folder: 'data'
 # todo env variable reading
 yadisk_token: '<your-access-token>'
@@ -7,3 +7,7 @@ s3:
   endpoint_url: "127.0.0.1:9000"
   access_key: "minioadmin"
   secret_key: "minioadmin"
+
+hydra:
+  job:
+    chdir: False
