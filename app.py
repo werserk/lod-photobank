@@ -1,20 +1,29 @@
 import streamlit as st
-
 import production
 import utils
 import cv2
+from catboost import CatBoostClassifier
+import hashlib
+import pickle
+from _youtokentome_cython import BPE
 
 tags = 'Время суток	Время года	Местность	Авиа	Автомобили	БПЛА	Водолаз	Кинолог	Кони	Объятия	Шерп'.split(
     '\t')
 
 
-def cached_get_setup():
-    return production.get_setup()
+# def _hash(obj):
+#     return hashlib.sha1(obj).digest()
+
+
+# @st.cache(hash_funcs={BPE: _hash})
+def get_setup():
+    model, processor = production.get_setup()
+    catboost_classifiers = [CatBoostClassifier().load_model(f'models/{tag.replace(" ", "_")}.cbm') for tag in tags]
+    return model, processor, catboost_classifiers
 
 
 def main():
-    model, processor = cached_get_setup()
-
+    model, processor, catboost_classifiers = get_setup()
     page_bg_img = '''
     <style>
     .stApp {
@@ -41,7 +50,7 @@ def main():
             st.error('Неправильный формат или название файла')
         else:
             embeddings = production.get_embeddings(model, processor, paths)
-            production.save_embeddings(embeddings)
+            production.save_embeddings(catboost_classifiers, embeddings)
 
     ### ОСНОВНАЯ ЛЕНТА
     request = st.text_input('Поиск по описанию', value="")

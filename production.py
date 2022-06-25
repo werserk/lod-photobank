@@ -4,13 +4,11 @@ from PIL import Image
 import os
 import faiss
 import pandas as pd
-import string
-import random
 import numpy as np
 from utils import generate_filename
 
 DEVICE = 'cpu'
-EMBEDDING_LENGTH = 768  # длина эмбеддинга
+EMBEDDING_LENGTH = 768
 K = 2
 
 
@@ -49,10 +47,20 @@ def get_embeddings(model, processor, data):
     return results
 
 
-def save_embeddings(embeddings):
+def save_embeddings(classifiers, embeddings):
     embeddings = [(i, j.detach().cpu().numpy()) for i, j in embeddings]
     df = pd.DataFrame([(i, *j) for i, j in embeddings],
                       columns=["path"] + [f"embeddins_{i}" for i in range(embeddings[0][1].shape[-1])])
+    predictions = []
+    embeddings = [x for _, x in embeddings]
+    for classifier in classifiers[:2]:
+        time_preds_class = classifier.predict(embeddings)
+        time_preds_class = [x[0] for x in time_preds_class]
+        predictions.append(time_preds_class)
+    for classifier in classifiers[2:]:
+        preds_class = classifier.predict(embeddings)
+        predictions.append(preds_class)
+    print(predictions)
     filename = generate_filename()
     df.to_feather(f"data/embeddings/{filename}.feather")
 
