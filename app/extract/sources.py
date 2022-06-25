@@ -31,7 +31,6 @@ class Source(ABC):
 
 class LocalSource(Source):
     def extract_files(self, files):
-        print(type(files[0]))
         paths = []
         for file in files:
             paths.append([])
