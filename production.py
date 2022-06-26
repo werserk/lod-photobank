@@ -83,7 +83,7 @@ def load_db_embeddings(include_filter):
     for index, tag in enumerate(include_filter):
         if tag != 0:
             df_res = df_res[df_res[f"tag{index}"] == tag]
-        df_res = df_res.drop(f"tag{index}")
+        df_res = df_res.drop(f"tag{index}", axis=1, errors='ignore')
     return df_res
 
 
