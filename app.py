@@ -98,6 +98,7 @@ def main(config: DictConfig):
         else:
             embeddings = production.get_embeddings(model, processor, paths)
             production.save_embeddings(catboost_classifiers, embeddings)
+            storage = S3Storage(config)
             storage.move_files_to_bucket(paths)
 
     # # ОСНОВНАЯ ЛЕНТА

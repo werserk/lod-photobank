@@ -1,3 +1,5 @@
+import logging
+
 import ruclip
 import torch
 from PIL import Image
@@ -10,6 +12,8 @@ from utils import generate_filename
 DEVICE = 'cpu'
 EMBEDDING_LENGTH = 768
 K = 2
+
+log = logging.getLogger(__name__)
 
 
 def get_setup():
@@ -25,6 +29,8 @@ def gen_batch(inputs, batch_size):
 
 
 def get_embeddings(model, processor, data):
+    log.info("List of paths:", data)
+
     results = []
     data.sort()
     batch_size = 128

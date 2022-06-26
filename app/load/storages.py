@@ -63,19 +63,21 @@ class S3Storage(Storage):
     def move_file_to_bucket(self, filepath, filename=None):
         if filename is None:
             filename = filepath.split('/')[-1]
+        log.info(filename)
         self.client.fput_object(
             self.bucket_name, filename, filepath,
         )
         os.remove(filepath)
 
     def load_file_from_bucket(self, filename):
+        if '/' in filename:
+            filename = filename.split('/')[-1]
         path = f"{self.config.cache_path}/{filename}"
         self.client.fget_object(
             self.bucket_name, filename, path)
         return path
 
     def move_files_to_bucket(self, paths):
-        for inner_paths in paths:
-            for path in inner_paths:
-                self.move_file_to_bucket(path, path)
+        for path in paths:
+            self.move_file_to_bucket(path)
 

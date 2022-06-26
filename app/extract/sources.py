@@ -38,11 +38,10 @@ class LocalSource(Source):
     def extract_files(self, files):
         paths = []
         for file in files:
-            paths.append([])
             filepath = f"{self.cache_folder}/{file.name}"
             with open(filepath, 'wb') as f:
                 f.write(file.getvalue())
-                paths[-1].append(filepath)
+                paths.append(filepath)
         log.info(f"Save {len(paths)} files to {self.cache_folder}")
         return paths
 
@@ -54,7 +53,7 @@ class LocalSource(Source):
                 zip_ref.extractall(dataset_path)
             for root, subdirectories, files in os.walk(dataset_path):
                 for file in files:
-                    paths.append([os.path.join(root, file)])
+                    paths.append(os.path.join(root, file))
         except FileNotFoundError:
             log.error(f"Zip archive {path_to_archive} not found!")
         return paths
