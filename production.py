@@ -62,7 +62,7 @@ def save_embeddings(classifiers, embeddings):
         predictions.append(preds_class)
 
     preds_df = pd.DataFrame(predictions).transpose().add_prefix("tag")
-    df.join(preds_df)
+    df = df.join(preds_df)
     filename = generate_filename()
     df.to_feather(f"data/embeddings/{filename}.feather")
 
