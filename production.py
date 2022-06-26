@@ -1,3 +1,5 @@
+import logging
+
 import ruclip
 import torch
 from PIL import Image
@@ -10,6 +12,8 @@ from utils import generate_filename
 DEVICE = 'cpu'
 EMBEDDING_LENGTH = 768
 K = 2
+
+log = logging.getLogger(__name__)
 
 
 def get_setup():
@@ -74,10 +78,13 @@ def load_db_embeddings(include_filter):
     for feather in feathers[1:]:
         df = pd.read_feather(os.path.join(folder, feather))
         df_res = df_res.append(df)
+
+    log.info(df_res['tag0'])
+    tags = ['tag0', 'tag1', 'tag2', 'tag3', 'tag4', 'tag5', 'tag6', 'tag7', 'tag8', 'tag9', 'tag10']
     for index, tag in enumerate(include_filter):
         if tag != 0:
-            df_res = df_res[df_res[f"tag{index}"] == tag]
-        df_res = df_res.drop(f"tag{index}")
+            df_res = df_res[df_res[tags[index]] == tag]
+        df_res = df_res.drop([tags[index]], axis=1)
     return df_res
 
 
